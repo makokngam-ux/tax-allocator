@@ -251,6 +251,7 @@ function App() {
   const [editCeiling, setEditCeiling] = useState(false);
   const [reportMode, setReportMode] = useState("month"); // month | year
   const [copied, setCopied] = useState("");
+  const [editTable, setEditTable] = useState(false); // ล็อกช่องตารางกันแก้พลาด
 
   const copyText = async (key, text) => {
     const done = () => { setCopied(key); setTimeout(() => setCopied(""), 1600); };
@@ -821,9 +822,14 @@ function App() {
               <div className="ph-table-head">
                 <div>
                   <h1 className="ph-title">ภาพรวมทั้งปี</h1>
-                  <p className="ph-sub">แตะที่ช่องเพื่อแก้ไขได้ทุกค่า</p>
+                  <p className="ph-sub">{editTable ? "โหมดแก้ไข — แตะช่องเพื่อพิมพ์ได้" : "ช่องถูกล็อกกันแก้พลาด · กด “แก้ไข” ก่อนพิมพ์"}</p>
                 </div>
-                <button className="ph-export" onClick={exportCSV}><Icon name="down" size={16} stroke={2.1} /> Excel</button>
+                <div className="ph-table-acts">
+                  <button className={`ph-lockbtn ${editTable ? "on" : ""}`} onClick={() => setEditTable((v) => !v)}>
+                    <Icon name={editTable ? "check" : "lock"} size={15} stroke={editTable ? 2.6 : 1.9} /> {editTable ? "เสร็จ" : "แก้ไข"}
+                  </button>
+                  <button className="ph-export" onClick={exportCSV}><Icon name="down" size={16} stroke={2.1} /> Excel</button>
+                </div>
               </div>
               <div className="ph-table-scroll">
                 <table className="ph-table">
@@ -837,7 +843,7 @@ function App() {
                         <tr key={mi} className={mi === month ? "act" : ""}>
                           <td className="stk">{MONTHS_SHORT[mi]}</td>
                           {people.map((p) => (
-                            <td key={p.id}><input type="text" inputMode="numeric" placeholder="0" value={data[p.id]?.[mi] ? fmt(data[p.id][mi]) : ""} onChange={(e) => setCell(p.id, mi, e.target.value.replace(/[^\d]/g, ""))} /></td>
+                            <td key={p.id}><input type="text" inputMode="numeric" placeholder="0" readOnly={!editTable} className={editTable ? "" : "locked"} value={data[p.id]?.[mi] ? fmt(data[p.id][mi]) : ""} onChange={(e) => setCell(p.id, mi, e.target.value.replace(/[^\d]/g, ""))} /></td>
                           ))}
                           <td className="sm">{rs ? fmt(rs) : "–"}</td>
                         </tr>
@@ -1332,8 +1338,13 @@ const CSS = `
 
 /* table */
 .ph-table-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
-.ph-export{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;margin-top:12px;padding:9px 15px;background:var(--mint-bg);border:1px solid #bce4d0;color:#1f7d5a;font-family:inherit;font-size:12.5px;font-weight:800;border-radius:13px;cursor:pointer;transition:.16s;}
+.ph-table-acts{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-top:12px;}
+.ph-export{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;background:var(--mint-bg);border:1px solid #bce4d0;color:#1f7d5a;font-family:inherit;font-size:12.5px;font-weight:800;border-radius:13px;cursor:pointer;transition:.16s;}
 .ph-export:active{transform:scale(.95);background:#cdeede;}
+.ph-lockbtn{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;background:var(--paper);border:1px solid var(--line);color:var(--mut);font-family:inherit;font-size:12.5px;font-weight:800;border-radius:13px;cursor:pointer;transition:.16s;}
+.ph-lockbtn:active{transform:scale(.95);}
+.ph-lockbtn.on{background:var(--pink-soft);border-color:var(--pink);color:var(--pink-d);}
+.ph-table tbody input.locked{cursor:default;pointer-events:none;color:var(--ink);}
 .ph-table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:22px;background:var(--paper);-webkit-overflow-scrolling:touch;box-shadow:0 8px 22px -14px rgba(150,90,110,.3);}
 .ph-table-scroll::-webkit-scrollbar{height:5px;}
 .ph-table-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
