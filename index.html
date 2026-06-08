@@ -269,9 +269,14 @@ function App() {
     }
   };
 
-  const [endpoint, setEndpoint] = useState("");
+  const [endpoint, setEndpoint] = useState(() => (typeof window !== "undefined" && window.__DEFAULT_ENDPOINT__) ? window.__DEFAULT_ENDPOINT__ : "");
   const [syncStatus, setSyncStatus] = useState("ยังไม่ได้เชื่อม Google Sheet");
   const [showSync, setShowSync] = useState(false);
+
+  // ขอที่เก็บข้อมูลแบบถาวร กันเบราว์เซอร์ลบ localStorage (ลิงก์เชื่อมชีตไม่หลุด)
+  useEffect(() => {
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  }, []);
 
   useEffect(() => {
     (async () => {
