@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>กระจายรายได้ &amp; เพดานภาษี 2569</title>
 <meta name="theme-color" content="#f85b8b" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -253,6 +253,8 @@ function App() {
   const [reportMode, setReportMode] = useState("month"); // month | year
   const [copied, setCopied] = useState("");
   const [editTable, setEditTable] = useState(false); // ล็อกช่องตารางกันแก้พลาด
+  const [editManual, setEditManual] = useState(false); // ล็อกช่องกรอกเองกันแก้พลาด
+  const [editBoy, setEditBoy] = useState(false); // ล็อกช่องยอดธีรวัฒน์กันแก้พลาด
 
   const copyText = async (key, text) => {
     const done = () => { setCopied(key); setTimeout(() => setCopied(""), 1600); };
@@ -501,6 +503,7 @@ function App() {
     setPreview(null); setLump("");
   };
   const clearMonth = () => {
+    if (!window.confirm("ล้างยอดของทุกคนในเดือน " + MONTHS[month] + " ?")) return;
     setData((prev) => {
       const next = { ...prev };
       people.forEach((p) => { next[p.id] = [...(prev[p.id] || Array(12).fill(0))]; next[p.id][month] = 0; });
@@ -717,11 +720,13 @@ function App() {
                     </div>
 
                     <div className="ph-boybase">
-                      <span className="ph-boybase-l"><span className="ph-boybase-ic"><Icon name="lock" size={14} /></span>ธีรวัฒน์ <em>หักก่อนเฉลี่ย</em></span>
+                      <span className="ph-boybase-l"><span className="ph-boybase-ic"><Icon name="lock" size={14} /></span>ธีรวัฒน์ <em>หักก่อนเฉลี่ย</em>
+                        <button className={`ph-boyedit ${editBoy ? "on" : ""}`} onClick={() => setEditBoy((v) => !v)}>{editBoy ? "เสร็จ" : "แก้ไข"}</button>
+                      </span>
                       <div className="ph-stepper">
-                        <button type="button" onClick={() => { setBoyAmt((v) => Math.max(0, (Number(v) || 0) - 1000)); setPreview(null); }} aria-label="ลด"><Icon name="minus" size={16} stroke={2.6} /></button>
-                        <input type="number" value={boyAmt} onChange={(e) => { setBoyAmt(Math.max(0, Number(e.target.value) || 0)); setPreview(null); }} />
-                        <button type="button" onClick={() => { setBoyAmt((v) => (Number(v) || 0) + 1000); setPreview(null); }} aria-label="เพิ่ม"><Icon name="plus" size={16} stroke={2.6} /></button>
+                        <button type="button" disabled={!editBoy} onClick={() => { setBoyAmt((v) => Math.max(0, (Number(v) || 0) - 1000)); setPreview(null); }} aria-label="ลด"><Icon name="minus" size={16} stroke={2.6} /></button>
+                        <input type="number" readOnly={!editBoy} className={editBoy ? "" : "locked"} value={boyAmt} onChange={(e) => { setBoyAmt(Math.max(0, Number(e.target.value) || 0)); setPreview(null); }} />
+                        <button type="button" disabled={!editBoy} onClick={() => { setBoyAmt((v) => (Number(v) || 0) + 1000); setPreview(null); }} aria-label="เพิ่ม"><Icon name="plus" size={16} stroke={2.6} /></button>
                       </div>
                     </div>
                     {Number(lump) > 0 && (() => {
@@ -798,7 +803,13 @@ function App() {
                 </>
               ) : (
                 <>
-                  <div className="ph-msum">รวมเดือน {MONTHS_SHORT[month]} <b>฿{fmt(monthSum)}</b></div>
+                  <div className="ph-msum">
+                    <span>รวมเดือน {MONTHS_SHORT[month]} <b>฿{fmt(monthSum)}</b></span>
+                    <button className={`ph-lockbtn ${editManual ? "on" : ""}`} onClick={() => setEditManual((v) => !v)}>
+                      <Icon name={editManual ? "check" : "lock"} size={15} stroke={editManual ? 2.6 : 1.9} /> {editManual ? "เสร็จ" : "แก้ไข"}
+                    </button>
+                  </div>
+                  {!editManual && <div className="ph-locknote"><Icon name="lock" size={12} /> ช่องถูกล็อกกันกดโดน · กด “แก้ไข” ก่อนพิมพ์</div>}
                   <div className="ph-manual">
                     {people.map((p, i) => {
                       const over = p.tier !== 0 && totals[p.id] > p.ceiling + 0.5;
@@ -806,7 +817,7 @@ function App() {
                         <label className={`ph-mrow ${over ? "over" : ""}`} key={p.id}>
                           <span className={`ph-mrow-ic tone-${toneOf(i)}`}>{p.tier === 0 ? <Icon name="lock" size={17} /> : <Icon name="user" size={17} />}</span>
                           <span className="mr-n">{p.name}{over && <em className="mr-warn"><Icon name="alert" size={11} stroke={2.4} /> เกินเพดาน ฿{fmt(totals[p.id] - p.ceiling)}</em>}</span>
-                          <span className="mr-in">฿<input type="number" placeholder="0" value={data[p.id]?.[month] || ""} onChange={(e) => setCell(p.id, month, e.target.value)} /></span>
+                          <span className="mr-in">฿<input type="number" placeholder="0" readOnly={!editManual} className={editManual ? "" : "locked"} value={data[p.id]?.[month] || ""} onChange={(e) => setCell(p.id, month, e.target.value)} /></span>
                         </label>
                       );
                     })}
@@ -1242,6 +1253,12 @@ const CSS = `
 .ph-stepper button:active{transform:scale(.9);background:#ffd1e0;}
 .ph-stepper input{width:74px;border:none;background:none;text-align:center;font-family:inherit;font-size:15px;font-weight:800;color:var(--ink);}
 .ph-stepper input:focus{outline:none;}
+.ph-stepper input.locked{color:var(--ink2);}
+.ph-stepper button:disabled{opacity:.35;cursor:default;background:var(--paper2);}
+.ph-boyedit{margin-left:8px;padding:3px 10px;border:1px solid var(--pink);background:var(--pink-soft);color:var(--pink-d);font-family:inherit;font-size:10.5px;font-weight:800;border-radius:20px;cursor:pointer;transition:.15s;}
+.ph-boyedit:active{transform:scale(.94);}
+.ph-boyedit.on{background:var(--mint-bg);border-color:#7fcfa9;color:var(--mint-ink);}
+.ph-locknote{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--mut);margin:-6px 0 11px;}
 .ph-disthint{font-size:12px;font-weight:600;color:var(--mut);background:var(--mint-bg);border-radius:11px;padding:8px 11px;margin-bottom:13px;}
 .ph-disthint b{color:var(--mint-ink);font-weight:800;}
 
@@ -1278,7 +1295,7 @@ const CSS = `
 .ph-ghost:active{transform:scale(.98);background:var(--paper2);}
 .ph-ghost.wide{width:100%;margin-top:14px;}
 
-.ph-msum{font-size:13px;color:var(--mut);margin-bottom:13px;font-weight:600;}
+.ph-msum{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--mut);margin-bottom:13px;font-weight:600;}
 .ph-msum b{font-size:18px;font-weight:800;color:var(--pink-d);margin-left:6px;letter-spacing:-.01em;}
 .ph-manual{display:flex;flex-direction:column;gap:9px;}
 .ph-mrow{display:flex;align-items:center;gap:11px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:11px 14px;box-shadow:0 3px 10px -8px rgba(150,90,110,.22);transition:border-color .15s;}
